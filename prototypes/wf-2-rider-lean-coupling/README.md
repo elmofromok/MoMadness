@@ -24,6 +24,25 @@ Then:
 5. Work down the seven guided runs in order. Each sets the sliders for you and
    drops you into the same jump, so only the physics changes between runs.
 
+## What you are trying to decide
+
+You are not trying to win. Landing clean is feedback, not a score, and there is
+nothing to complete.
+
+Runs 1 to 4 are a taste test. Ride each twice and leave the sliders alone. They
+are the same jump with different physics behind it: coupled, a control case
+where nothing you do works, independent, then both. By the end of run 4 you want
+an opinion on one question. **Does moving the Rider feel like it is doing the
+work, or does it feel indirect next to run 3?** That opinion is the answer to
+issue #2. Runs 5 to 7 then poke at the edges: exaggeration, the nose-low case,
+and the roll axis.
+
+The sliders come after. Two of them matter. Set Direct Bike authority to 0,
+leave the guided runs, ride free play, and walk Lean coupling up from about 0.5
+to 2.5, looking for the point where the air-save can rescue a bad jump without
+feeling twitchy. That number is the second half of the answer. The other three
+sliders are there to explain the model, not to be tuned.
+
 ## The question
 
 When the Bike is airborne, does moving the Rider apply reaction torque to the
@@ -106,5 +125,10 @@ acceptable.
 ## Recording the answer
 
 The landing log stamps every landing with the coupling and authority in force at
-the time. Ride, sweep, and the answer to write back to issue #2 is the model,
-and if coupled, roughly what coupling value.
+the time. The **Your verdict** box at the bottom of the page turns your pick,
+plus whatever the sliders are set to, into a note to paste onto
+[issue #2](https://github.com/elmofromok/MoMadness/issues/2). What goes on the
+issue is the model, and if coupled, roughly what coupling value.
+
+Then the validated `AirControl` module lifts into the real code, and this branch
+stays put as the primary source behind the decision. It is not meant to merge.
