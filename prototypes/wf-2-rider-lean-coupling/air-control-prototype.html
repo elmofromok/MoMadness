@@ -53,6 +53,11 @@
   .steps { margin: 0; padding-left: 22px; max-width: 760px; color: var(--dim); }
   .steps li { margin-bottom: 8px; }
   .steps b { color: var(--ink); font-weight: 600; }
+  .note { background: var(--panel-2); border-left: 3px solid var(--accent); border-radius: 0 6px 6px 0; padding: 12px 16px; margin: 16px 0 0; max-width: 760px; color: var(--dim); }
+  .note b { color: var(--ink); font-weight: 600; }
+  .verdict-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .verdict-btns .btn.ghost.picked { border-color: var(--accent); background: var(--panel-2); }
+  textarea { width: 100%; min-height: 150px; background: #0e1013; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 12px; font: 12.5px/1.6 ui-monospace, Menlo, Consolas, monospace; resize: vertical; }
   .scenario p { margin: 0 0 10px; max-width: 720px; }
   .scenario .do { background: var(--panel-2); border-left: 3px solid var(--accent); border-radius: 0 6px 6px 0; padding: 10px 14px; color: var(--ink); }
   .scenario .do b { color: var(--accent); }
@@ -94,6 +99,7 @@
           <li><b>Then it lands.</b> If the Bike's angle is within 25&deg; of the ground it lands clean. Otherwise it crashes and respawns a moment later. The bar at the top left of the picture shows how wrong the landing will be if you land right now, and the white prompt tells you which key you want.</li>
           <li><b>Then work down the guided runs below, in order.</b> Each one sets the sliders for you and drops you into the same jump, so the only thing that changes between runs is the physics.</li>
         </ol>
+        <p class="note"><b>You are not trying to win.</b> Landing clean is feedback, not a score, and there is nothing to complete. Runs 1 to 4 are a taste test: ride each twice, leave the sliders alone, and by the end of run 4 you want an opinion on one question. <b>Does moving the Rider feel like it is doing the work, or does it feel indirect next to run 3?</b> That opinion is the answer to issue&nbsp;#2. Runs 5 to 7 then poke at the edges. The sliders come after, and the verdict box at the bottom of the page is where the answer goes.</p>
       </div>
 
       <div class="card">
@@ -109,7 +115,7 @@
       </div>
 
       <div class="card">
-        <h2>Guided runs</h2>
+        <h2>Guided runs — a taste test, not a challenge</h2>
         <div class="tabs" id="tabs"></div>
         <div class="scenario" id="scenario"></div>
       </div>
@@ -117,6 +123,21 @@
       <div class="card">
         <h2>Landings this session</h2>
         <div class="log" id="log"><div class="empty">No landings yet. Ride, or start a guided run.</div></div>
+      </div>
+
+      <div class="card">
+        <h2>Your verdict</h2>
+        <p style="margin-top:0">Once the runs have given you an opinion, pick it here. The point of a
+        prototype is the answer it settles, so this writes the note to paste onto
+        <a href="https://github.com/elmofromok/MoMadness/issues/2" style="color:var(--accent)">issue #2</a>,
+        using whatever the sliders are set to right now.</p>
+        <div class="verdict-btns">
+          <button class="btn ghost" data-verdict="1">Model 1, coupled</button>
+          <button class="btn ghost" data-verdict="2">Model 2, independent</button>
+          <button class="btn ghost" data-verdict="3">Model 3, both</button>
+        </div>
+        <textarea id="verdict-out" readonly placeholder="Pick one above and the note appears here."></textarea>
+        <p style="margin-bottom:0"><button class="btn" id="verdict-copy">Copy it</button></p>
       </div>
     </div>
 
@@ -153,6 +174,7 @@
           <div class="hint">Off, the nose-down key is <b id="v-downkey">S</b>, which is what the physics gives you. On, it becomes W, which is what a player probably expects. The Rider still visibly moves the way the physics says either way, so only the mapping changes. The guided runs follow whichever you pick.</div>
         </div>
         <div class="row" style="margin-bottom:14px"><span>Most a Rider throw can buy</span><span id="v-budget">18&deg;</span></div>
+        <p class="note" style="font-size:13px"><b>How to sweep.</b> Do this after the runs, not during. Set Direct Bike authority to 0, leave the guided runs alone and just ride, then walk Lean coupling up from about 0.5 to 2.5. You are looking for the point where the air-save can rescue a bad jump without feeling twitchy. That number is the second half of the answer. The other three sliders are here to explain the model, not to be tuned.</p>
         <button class="btn ghost" id="reset-tuning">Reset tuning</button>
       </div>
 
@@ -653,7 +675,11 @@ function updateState() {
     : '—';
 }
 
+const tally = { total: 0, clean: 0 };
+
 function logLanding(l) {
+  tally.total++;
+  if (l.clean) tally.clean++;
   const log = el('log');
   const blank = log.querySelector('.empty');
   if (blank) log.innerHTML = '';
@@ -756,6 +782,7 @@ function syncSliders() {
   const share = (tuning.coupling * tuning.riderInertia)
               / (tuning.bikeInertia + tuning.coupling * tuning.riderInertia);
   el('v-budget').textContent = (share * tuning.riderRange * DEG).toFixed(0) + '°';
+  renderVerdict();
 }
 
 for (const s of SLIDERS) {
@@ -912,7 +939,79 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+/* --------------------------- the verdict --------------------------- */
+
+// A prototype earns its keep by settling something. This turns whatever the
+// riding taught you into a line that can go straight onto the issue.
+const VERDICTS = {
+  1: {
+    name: 'Model 1, coupled',
+    what: 'Rider lean is the only thing that rotates the Bike in the air. No direct Bike air-control.'
+  },
+  2: {
+    name: 'Model 2, independent',
+    what: 'Bike air-rotation and Rider lean are separate systems. Rider angle only matters for landing pose and Crash detection.'
+  },
+  3: {
+    name: 'Model 3, both',
+    what: 'Bike has direct air-control and Rider lean adds reaction torque on top.'
+  }
+};
+
+let verdict = null;
+
+function renderVerdict() {
+  if (!verdict) return;
+  const v = VERDICTS[verdict];
+  const coupled = verdict !== '2';
+  const lines = [
+    'Issue #2, settled by feel in prototypes/wf-2-rider-lean-coupling.',
+    '',
+    'Answer: ' + v.name + '.',
+    v.what,
+    '',
+    'Coupling: ' + (coupled ? tuning.coupling.toFixed(2) : '0 (Rider contributes no torque)'),
+    'Direct Bike authority: ' + tuning.directAuthority.toFixed(1) + ' rad/s^2',
+    'Rider inertia share: ' + tuning.riderInertia.toFixed(2)
+      + ', reach ' + (tuning.riderRange * DEG).toFixed(0) + ' degrees'
+      + (coupled ? ', so a throw buys at most ' + el('v-budget').textContent.replace('°', ' degrees') : ''),
+    'Lean keys: ' + (invertLean()
+      ? 'inverted, nose-down on W. The Rider visibly leans back while the player presses forward.'
+      : 'as the physics gives them, nose-down on S.'),
+    '',
+    'Ridden: ' + tally.total + ' landings this session, ' + tally.clean + ' clean.',
+    '',
+    'Caveat: pitch and roll were modelled as independent 1-DOF axes with no',
+    'gyroscopic cross-talk, so the coupling number is a starting point for the',
+    'Unity tune rather than a final value. The choice of model is the part that',
+    'transfers intact.'
+  ];
+  el('verdict-out').value = lines.join('\n');
+}
+
+document.querySelectorAll('[data-verdict]').forEach(b => {
+  b.addEventListener('click', () => {
+    verdict = b.dataset.verdict;
+    document.querySelectorAll('[data-verdict]').forEach(o => o.classList.toggle('picked', o === b));
+    renderVerdict();
+  });
+});
+
+el('verdict-copy').addEventListener('click', async () => {
+  const box = el('verdict-out');
+  if (!box.value) return;
+  box.select();
+  try {
+    await navigator.clipboard.writeText(box.value);
+    el('verdict-copy').textContent = 'Copied';
+    setTimeout(() => { el('verdict-copy').textContent = 'Copy it'; }, 1500);
+  } catch {
+    el('verdict-copy').textContent = 'Selected, press Ctrl+C';
+  }
+});
+
 el('s-invert').addEventListener('change', () => {
+  renderVerdict();
   applyLeanLabels();
   el('v-downkey').textContent = noseDownKey();
   renderScenario();
