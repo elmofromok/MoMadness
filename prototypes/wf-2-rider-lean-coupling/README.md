@@ -16,6 +16,8 @@ Then:
    control is the Rider, the orange figure.
 3. While it is in the air, hold `W` to throw the Rider forward or `S` to throw
    them back. Does the Bike rotate underneath them? That is the question.
+   Note that **`S`, throwing the Rider back, is what brings the nose down**.
+   See "Which key brings the nose down" below.
 4. It lands. Within 25&deg; of the ground is clean, otherwise it crashes and
    respawns. The bar top-left shows how wrong the landing would be right now,
    and a line across the picture names the key you want.
@@ -72,6 +74,34 @@ the Bike is pointing, never how fast it is spinning, and letting go before the
 landing hands the angle straight back, so the player has to hold the throw
 through touchdown. Direct authority instead gives rate control: a stab of the
 stick, then release.
+
+## Which key brings the nose down
+
+Throwing the Rider **back** brings the nose down. Throwing them **forward**
+brings it up. That is backwards from what most people guess, and it is what
+conservation of angular momentum gives you: with no external torque, the Rider
+rotating one way forces the Bike to rotate the other. Pike forward and your legs
+come up; the Bike is the legs.
+
+The everyday motocross coaching, weight forward to bring the front down, is
+about a different thing. On the ground it is weight transfer through the
+suspension. In the air, riders bring the nose down with the rear brake, and when
+they use their body they push and pull between the bars and the pegs, which is a
+force couple acting on the Bike directly rather than a body rotation. This
+prototype models the body rotation only, which is the mechanism issue #2 is
+actually asking about.
+
+So the direction of the mapping is a design decision in its own right, and the
+**Invert the lean keys** box in the Tuning panel exists to let you feel both. Off
+is what the physics gives you, nose-down on `S`. On is what a player probably
+expects, nose-down on `W`. The Rider still visibly moves the way the physics says
+in both cases, so only the key mapping changes. Every guided run follows whichever
+way you set it.
+
+If a coupled model wins but only with the keys inverted, that is worth recording
+on the issue too: it means the animation and the control will read as
+contradictory to anyone who looks closely, and someone has to decide that is
+acceptable.
 
 ## Recording the answer
 
