@@ -50,7 +50,12 @@
   .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
   .tab { background: transparent; border: 1px solid var(--line); color: var(--dim); border-radius: 6px; padding: 7px 12px; font-size: 13px; }
   .tab.on { border-color: var(--accent); color: var(--ink); background: var(--panel-2); }
+  .steps { margin: 0; padding-left: 22px; max-width: 760px; color: var(--dim); }
+  .steps li { margin-bottom: 8px; }
+  .steps b { color: var(--ink); font-weight: 600; }
   .scenario p { margin: 0 0 10px; max-width: 720px; }
+  .scenario .do { background: var(--panel-2); border-left: 3px solid var(--accent); border-radius: 0 6px 6px 0; padding: 10px 14px; color: var(--ink); }
+  .scenario .do b { color: var(--accent); }
   .scenario .watch { color: var(--dim); font-size: 14px; }
   .scenario .watch b { color: var(--ink); font-weight: 600; }
   .log { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px; max-height: 230px; overflow-y: auto; }
@@ -79,6 +84,17 @@
 
   <div class="cols">
     <div>
+      <div class="card">
+        <h2>Start here</h2>
+        <ol class="steps">
+          <li><b>Click the picture once</b>, so the keyboard reaches it.</li>
+          <li><b>The Bike rides and jumps by itself.</b> You never steer it. The only thing you control is the Rider, who is the orange figure.</li>
+          <li><b>While it is in the air, hold W</b> to throw the Rider forward, or <b>S</b> to throw them back. That single question is what this whole page exists to answer: does moving the Rider rotate the Bike underneath them?</li>
+          <li><b>Then it lands.</b> If the Bike's angle is within 25&deg; of the ground it lands clean. Otherwise it crashes and respawns a moment later. The bar at the top left of the picture shows how wrong the landing will be if you land right now, and the white prompt tells you which key you want.</li>
+          <li><b>Then work down the guided runs below, in order.</b> Each one sets the sliders for you and drops you into the same jump, so the only thing that changes between runs is the physics.</li>
+        </ol>
+      </div>
+
       <div class="card">
         <canvas id="view" width="1600" height="820"></canvas>
         <div class="keys" id="keys">
@@ -468,6 +484,45 @@ function draw() {
   drawSideRig(toX(bike.x), toY(bike.y), bike.pitch.bikeAngle, AirControl.riderWorldAngle(bike.pitch));
   drawRearView(w - 250, 40, 210);
   drawLandingGauge(40, 40);
+  drawPrompt(w);
+}
+
+// Tells you, in as many words, which key you want right now. Without this the
+// page is a physics sim with no stated goal, which is no use to anybody.
+function drawPrompt(w) {
+  let text, colour = '#e6e8ec';
+  if (bike.crashed) {
+    text = 'CRASHED. Respawning...';
+    colour = '#e0524a';
+  } else if (!bike.airborne) {
+    text = 'On the ground. Wait for the next ramp, there is nothing to do until you are in the air.';
+    colour = '#949aa6';
+  } else {
+    const pitchDelta = (bike.pitch.bikeAngle - slopeBehind(bike.x + 5)) * DEG;
+    const rollDelta = bike.roll.bikeAngle * DEG;
+    if (Math.abs(rollDelta) > Math.abs(pitchDelta) && Math.abs(rollDelta) > 8) {
+      text = rollDelta > 0 ? 'Going over to the right. Hold D.' : 'Going over to the left. Hold A.';
+      colour = '#ff7a1a';
+    } else if (pitchDelta > 8) {
+      text = 'Nose is HIGH. Hold W to throw the Rider forward.';
+      colour = '#ff7a1a';
+    } else if (pitchDelta < -8) {
+      text = 'Nose is LOW. Hold S to throw the Rider back.';
+      colour = '#ff7a1a';
+    } else {
+      text = 'Angle looks good. Keep it there until you touch down.';
+      colour = '#57c07a';
+    }
+  }
+  ctx.save();
+  ctx.font = '600 30px ui-sans-serif, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(20,22,26,0.82)';
+  const tw = ctx.measureText(text).width;
+  ctx.fillRect(w / 2 - tw / 2 - 20, 132, tw + 40, 48);
+  ctx.fillStyle = colour;
+  ctx.fillText(text, w / 2, 165);
+  ctx.restore();
 }
 
 function drawSideRig(px, py, pitch, riderAngle) {
@@ -554,6 +609,8 @@ function drawLandingGauge(x, y) {
   ctx.fillStyle = '#949aa6';
   ctx.font = '600 13px ui-sans-serif, sans-serif';
   ctx.fillText(bike.airborne ? 'LANDING ANGLE IF YOU LAND NOW' : 'ON THE GROUND', 12, 22);
+  ctx.font = '500 12px ui-sans-serif, sans-serif';
+  ctx.fillText('keep the marker inside the green band', 12, 71);
 
   const cx = w / 2, barY = 52, scale = 2.2;
   ctx.fillStyle = 'rgba(87,192,122,0.16)';
@@ -703,6 +760,7 @@ const SCENARIOS = [
     note: 'model 1',
     tuning: { coupling: 1.0, directAuthority: 0 },
     launch: NOSE_HIGH,
+    todo: 'Press the orange button, then <b>hold W and keep holding it until the Bike touches down</b>.',
     body: 'A nose-high launch, rotating backwards at about 110&deg;/s. The Rider is the only instrument you have: throwing their weight forward is what brings the nose down, and nothing else can. Hold <b>W</b> as soon as you are off the lip.',
     watch: 'Whether the save feels like <b>you</b> did it, or like you asked and the Bike got round to it. Then watch <b>Bike pitch rate</b> while you throw: it comes back to where it started. Conservation lets the Rider move where the Bike is <b>pointing</b>, never how fast it is <b>spinning</b>, so the whole air-save is one fixed budget of degrees, spent once. The panel calls that budget out. Then try letting go just before you land: the Rider comes back to centre and hands the angle straight back. Under coupling you have to <b>hold the throw through the landing</b>, which is a different thing to ask of a player than a stab of the stick.'
   },
@@ -711,6 +769,7 @@ const SCENARIOS = [
     note: 'coupling 0, no authority',
     tuning: { coupling: 0, directAuthority: 0 },
     launch: NOSE_HIGH,
+    todo: 'Press the orange button, then <b>hold W</b>, exactly as you just did. Nothing you do will work.',
     body: 'The same launch with coupling at zero and no direct authority. The Rider moves, and the Bike ignores them entirely.',
     watch: 'This is the floor, and you should crash every time. It is here so you can feel exactly what the Rider is contributing in the runs either side of it.'
   },
@@ -719,6 +778,7 @@ const SCENARIOS = [
     note: 'model 2',
     tuning: { coupling: 0, directAuthority: 1.5 },
     launch: NOSE_HIGH,
+    todo: 'Press the orange button, then <b>tap W for about a third of a second and let go</b>. Holding it all the way down will spin you past flat and into a crash, which is the point.',
     body: 'The same launch, but now the stick torques the Bike directly and the Rider is along for the ride. This is the "cross-over rotates the Bike" reading of the source material.',
     watch: 'It will probably feel <b>more precise</b> than model 1. The question is whether it feels like a motorcycle or a spaceship, and whether the Rider still looks like they are doing anything at all.'
   },
@@ -727,6 +787,7 @@ const SCENARIOS = [
     note: 'model 3',
     tuning: { coupling: 0.6, directAuthority: 0.8 },
     launch: NOSE_HIGH,
+    todo: 'Press the orange button, then <b>use W however you like</b>. Both a held throw and a short tap will save this one.',
     body: 'Coupling at 0.6 with a light touch of direct authority. The Rider throw does real work, and the Bike has enough authority of its own to finish the job.',
     watch: 'Whether the two channels read as one action or as two. If you cannot feel the direct channel underneath the Rider throw, the coupling is doing all the work and the authority slider can go to zero.'
   },
@@ -735,6 +796,7 @@ const SCENARIOS = [
     note: 'coupling 2.0',
     tuning: { coupling: 2.0, directAuthority: 0 },
     launch: NOSE_HIGH,
+    todo: 'Press the orange button, then <b>hold W</b>. Compare how hard the Bike snaps round against run 1.',
     body: 'Coupling pushed to 2.0, so every Rider movement whips the Bike around twice as hard as conservation of momentum would allow.',
     watch: 'Whether the exaggeration reads as powerful or as twitchy. Arcade physics usually wants more than 1.0 here. Find where it tips over.'
   },
@@ -743,6 +805,7 @@ const SCENARIOS = [
     note: 'nose-low',
     tuning: { coupling: 1.0, directAuthority: 0 },
     launch: NOSE_LOW,
+    todo: 'Press the orange button, then <b>hold S</b> until touchdown. The other key this time.',
     body: 'The other failure: off a flat kicker with the nose already dropping. Hold <b>S</b> to throw the Rider back.',
     watch: 'Leaning back is the harder throw for a real rider and runs out of reach sooner. Whether nose-low saves feel unfairly harder than nose-high ones, and whether that asymmetry is worth keeping.'
   },
@@ -751,6 +814,7 @@ const SCENARIOS = [
     note: 'cross-over',
     tuning: { coupling: 1.0, directAuthority: 0 },
     launch: SIDEWAYS,
+    todo: 'Press the orange button, then <b>hold D</b> until touchdown, and watch the small square at the top right rather than the main picture.',
     body: 'Launched with roll on, so the Bike is going over sideways. Use <b>A</b> and <b>D</b> and watch the rear view. This is the axis the source material actually contradicts itself about.',
     watch: 'Whether throwing the Rider sideways is a plausible way to right a Bike in mid-air, or whether roll is the one axis that wants direct control even if pitch does not.'
   }
@@ -764,7 +828,7 @@ function renderTabs() {
   SCENARIOS.forEach((s, i) => {
     const b = document.createElement('button');
     b.className = 'tab' + (i === currentScenario ? ' on' : '');
-    b.textContent = s.name;
+    b.textContent = (i + 1) + '. ' + s.name;
     b.onclick = () => { currentScenario = i; renderTabs(); renderScenario(); };
     tabs.appendChild(b);
   });
@@ -774,6 +838,11 @@ function renderScenario() {
   const s = SCENARIOS[currentScenario];
   const box = el('scenario');
   box.innerHTML = '';
+
+  const todo = document.createElement('p');
+  todo.className = 'do';
+  todo.innerHTML = 'What to do: ' + s.todo;
+  box.appendChild(todo);
 
   const p = document.createElement('p');
   p.innerHTML = s.body;
