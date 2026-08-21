@@ -9,6 +9,19 @@ Unity asset pipeline never sees it.
 
 Double-click `air-control-prototype.html`. No server, no build, no install.
 
+Then:
+
+1. Click the picture once, so the keyboard reaches it.
+2. The Bike rides and jumps by itself. You never steer it. The only thing you
+   control is the Rider, the orange figure.
+3. While it is in the air, hold `W` to throw the Rider forward or `S` to throw
+   them back. Does the Bike rotate underneath them? That is the question.
+4. It lands. Within 25&deg; of the ground is clean, otherwise it crashes and
+   respawns. The bar top-left shows how wrong the landing would be right now,
+   and a line across the picture names the key you want.
+5. Work down the seven guided runs in order. Each sets the sliders for you and
+   drops you into the same jump, so only the physics changes between runs.
+
 ## The question
 
 When the Bike is airborne, does moving the Rider apply reaction torque to the
