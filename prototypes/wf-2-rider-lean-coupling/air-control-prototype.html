@@ -89,7 +89,8 @@
         <ol class="steps">
           <li><b>Click the picture once</b>, so the keyboard reaches it.</li>
           <li><b>The Bike rides and jumps by itself.</b> You never steer it. The only thing you control is the Rider, who is the orange figure.</li>
-          <li><b>While it is in the air, hold W</b> to throw the Rider forward, or <b>S</b> to throw them back. That single question is what this whole page exists to answer: does moving the Rider rotate the Bike underneath them?</li>
+          <li><b>While it is in the air, hold W</b> to throw the Rider forward, or <b>S</b> to throw them back. Does the Bike rotate underneath them? That is the whole question this page exists to answer.</li>
+          <li><b>Throwing the Rider back is what brings the nose down.</b> That is backwards from what most people guess, and it is not a bug: the Rider rotates one way, so the Bike has to rotate the other. Whether a player can ever be taught that is itself part of the decision, so there is an <b>Invert the lean keys</b> box in the Tuning panel to try it the intuitive way round.</li>
           <li><b>Then it lands.</b> If the Bike's angle is within 25&deg; of the ground it lands clean. Otherwise it crashes and respawns a moment later. The bar at the top left of the picture shows how wrong the landing will be if you land right now, and the white prompt tells you which key you want.</li>
           <li><b>Then work down the guided runs below, in order.</b> Each one sets the sliders for you and drops you into the same jump, so the only thing that changes between runs is the physics.</li>
         </ol>
@@ -146,6 +147,10 @@
           <label>Rider inertia share <b id="v-inertia">0.55</b></label>
           <input type="range" id="s-inertia" min="0.1" max="1.2" step="0.05" value="0.55">
           <div class="hint">The Rider's moment of inertia relative to the Bike's. Heavier Rider, harder kick back.</div>
+        </div>
+        <div class="slider">
+          <label style="cursor:pointer; justify-content:flex-start; gap:8px"><input type="checkbox" id="s-invert"> Invert the lean keys</label>
+          <div class="hint">Off, the nose-down key is <b id="v-downkey">S</b>, which is what the physics gives you. On, it becomes W, which is what a player probably expects. The Rider still visibly moves the way the physics says either way, so only the mapping changes. The guided runs follow whichever you pick.</div>
         </div>
         <div class="row" style="margin-bottom:14px"><span>Most a Rider throw can buy</span><span id="v-budget">18&deg;</span></div>
         <button class="btn ghost" id="reset-tuning">Reset tuning</button>
@@ -504,10 +509,10 @@ function drawPrompt(w) {
       text = rollDelta > 0 ? 'Going over to the right. Hold D.' : 'Going over to the left. Hold A.';
       colour = '#ff7a1a';
     } else if (pitchDelta > 8) {
-      text = 'Nose is HIGH. Hold W to throw the Rider forward.';
+      text = 'Nose is HIGH. Hold ' + noseDownKey() + '.';
       colour = '#ff7a1a';
     } else if (pitchDelta < -8) {
-      text = 'Nose is LOW. Hold S to throw the Rider back.';
+      text = 'Nose is LOW. Hold ' + noseUpKey() + '.';
       colour = '#ff7a1a';
     } else {
       text = 'Angle looks good. Keep it there until you touch down.';
@@ -665,6 +670,22 @@ function logLanding(l) {
 
 /* ---------------------------- controls ---------------------------- */
 
+const invertLean = () => el('s-invert').checked;
+const noseDownKey = () => invertLean() ? 'W' : 'S';
+const noseUpKey = () => invertLean() ? 'S' : 'W';
+
+// Scenario copy and the on-canvas prompt name keys by token, so the invert
+// toggle cannot leave them telling you to press the wrong one.
+function keys(text) {
+  return text.replace(/\{DOWN\}/g, noseDownKey()).replace(/\{UP\}/g, noseUpKey());
+}
+
+function applyLeanLabels() {
+  const inv = invertLean();
+  document.querySelector('.keycap[data-key="w"]').innerHTML = '<b>W</b> lean ' + (inv ? 'back' : 'forward');
+  document.querySelector('.keycap[data-key="s"]').innerHTML = '<b>S</b> lean ' + (inv ? 'forward' : 'back');
+}
+
 const held = Object.create(null);
 const KEYMAP = {
   w: 'w', s: 's', a: 'a', d: 'd',
@@ -704,7 +725,11 @@ document.querySelectorAll('.keycap').forEach(cap => {
 });
 
 function readInput() {
-  input.pitch = (held['w'] ? 1 : 0) - (held['s'] ? 1 : 0);
+  // S throws the Rider back, W throws them forward. Under conservation a
+  // backward throw is what brings the nose DOWN, so the nose-down key is S
+  // unless the mapping is inverted.
+  const sign = invertLean() ? -1 : 1;
+  input.pitch = sign * ((held['s'] ? 1 : 0) - (held['w'] ? 1 : 0));
   input.roll = (held['d'] ? 1 : 0) - (held['a'] ? 1 : 0);
   input.throttle = !!held['shift'];
 }
@@ -760,8 +785,8 @@ const SCENARIOS = [
     note: 'model 1',
     tuning: { coupling: 1.0, directAuthority: 0 },
     launch: NOSE_HIGH,
-    todo: 'Press the orange button, then <b>hold W and keep holding it until the Bike touches down</b>.',
-    body: 'A nose-high launch, rotating backwards at about 110&deg;/s. The Rider is the only instrument you have: throwing their weight forward is what brings the nose down, and nothing else can. Hold <b>W</b> as soon as you are off the lip.',
+    todo: 'Press the orange button, then <b>hold {DOWN} and keep holding it until the Bike touches down</b>.',
+    body: 'A nose-high launch. The Rider is the only instrument you have. Throwing their weight <b>back</b> is what brings the nose down, which is the opposite of what most people guess, and it is what conservation of angular momentum actually does: the Rider rotates one way, so the Bike has to rotate the other. Hold <b>{DOWN}</b> as soon as you are off the lip.',
     watch: 'Whether the save feels like <b>you</b> did it, or like you asked and the Bike got round to it. Then watch <b>Bike pitch rate</b> while you throw: it comes back to where it started. Conservation lets the Rider move where the Bike is <b>pointing</b>, never how fast it is <b>spinning</b>, so the whole air-save is one fixed budget of degrees, spent once. The panel calls that budget out. Then try letting go just before you land: the Rider comes back to centre and hands the angle straight back. Under coupling you have to <b>hold the throw through the landing</b>, which is a different thing to ask of a player than a stab of the stick.'
   },
   {
@@ -769,7 +794,7 @@ const SCENARIOS = [
     note: 'coupling 0, no authority',
     tuning: { coupling: 0, directAuthority: 0 },
     launch: NOSE_HIGH,
-    todo: 'Press the orange button, then <b>hold W</b>, exactly as you just did. Nothing you do will work.',
+    todo: 'Press the orange button, then <b>hold {DOWN}</b>, exactly as you just did. Nothing you do will work.',
     body: 'The same launch with coupling at zero and no direct authority. The Rider moves, and the Bike ignores them entirely.',
     watch: 'This is the floor, and you should crash every time. It is here so you can feel exactly what the Rider is contributing in the runs either side of it.'
   },
@@ -778,7 +803,7 @@ const SCENARIOS = [
     note: 'model 2',
     tuning: { coupling: 0, directAuthority: 1.5 },
     launch: NOSE_HIGH,
-    todo: 'Press the orange button, then <b>tap W for about a third of a second and let go</b>. Holding it all the way down will spin you past flat and into a crash, which is the point.',
+    todo: 'Press the orange button, then <b>tap {DOWN} for about a third of a second and let go</b>. Holding it all the way down will spin you past flat and into a crash, which is the point.',
     body: 'The same launch, but now the stick torques the Bike directly and the Rider is along for the ride. This is the "cross-over rotates the Bike" reading of the source material.',
     watch: 'It will probably feel <b>more precise</b> than model 1. The question is whether it feels like a motorcycle or a spaceship, and whether the Rider still looks like they are doing anything at all.'
   },
@@ -787,7 +812,7 @@ const SCENARIOS = [
     note: 'model 3',
     tuning: { coupling: 0.6, directAuthority: 0.8 },
     launch: NOSE_HIGH,
-    todo: 'Press the orange button, then <b>use W however you like</b>. Both a held throw and a short tap will save this one.',
+    todo: 'Press the orange button, then <b>use {DOWN} however you like</b>. Both a held throw and a short tap will save this one.',
     body: 'Coupling at 0.6 with a light touch of direct authority. The Rider throw does real work, and the Bike has enough authority of its own to finish the job.',
     watch: 'Whether the two channels read as one action or as two. If you cannot feel the direct channel underneath the Rider throw, the coupling is doing all the work and the authority slider can go to zero.'
   },
@@ -796,7 +821,7 @@ const SCENARIOS = [
     note: 'coupling 2.0',
     tuning: { coupling: 2.0, directAuthority: 0 },
     launch: NOSE_HIGH,
-    todo: 'Press the orange button, then <b>hold W</b>. Compare how hard the Bike snaps round against run 1.',
+    todo: 'Press the orange button, then <b>hold {DOWN}</b>. Compare how hard the Bike snaps round against run 1.',
     body: 'Coupling pushed to 2.0, so every Rider movement whips the Bike around twice as hard as conservation of momentum would allow.',
     watch: 'Whether the exaggeration reads as powerful or as twitchy. Arcade physics usually wants more than 1.0 here. Find where it tips over.'
   },
@@ -805,8 +830,8 @@ const SCENARIOS = [
     note: 'nose-low',
     tuning: { coupling: 1.0, directAuthority: 0 },
     launch: NOSE_LOW,
-    todo: 'Press the orange button, then <b>hold S</b> until touchdown. The other key this time.',
-    body: 'The other failure: off a flat kicker with the nose already dropping. Hold <b>S</b> to throw the Rider back.',
+    todo: 'Press the orange button, then <b>hold {UP}</b> until touchdown. The other key this time.',
+    body: 'The other failure: off a flat kicker with the nose already dropping. Hold <b>{UP}</b>.',
     watch: 'Leaning back is the harder throw for a real rider and runs out of reach sooner. Whether nose-low saves feel unfairly harder than nose-high ones, and whether that asymmetry is worth keeping.'
   },
   {
@@ -841,16 +866,16 @@ function renderScenario() {
 
   const todo = document.createElement('p');
   todo.className = 'do';
-  todo.innerHTML = 'What to do: ' + s.todo;
+  todo.innerHTML = 'What to do: ' + keys(s.todo);
   box.appendChild(todo);
 
   const p = document.createElement('p');
-  p.innerHTML = s.body;
+  p.innerHTML = keys(s.body);
   box.appendChild(p);
 
   const watch = document.createElement('p');
   watch.className = 'watch';
-  watch.innerHTML = 'Watch for: ' + s.watch;
+  watch.innerHTML = 'Watch for: ' + keys(s.watch);
   box.appendChild(watch);
 
   const go = document.createElement('button');
@@ -887,7 +912,14 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+el('s-invert').addEventListener('change', () => {
+  applyLeanLabels();
+  el('v-downkey').textContent = noseDownKey();
+  renderScenario();
+});
+
 syncSliders();
+applyLeanLabels();
 renderTabs();
 renderScenario();
 respawn(20);
