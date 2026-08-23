@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Does the Rider turn the Bike?</title>
+<style>
+  :root {
+    --bg: #14161a;
+    --panel: #1c1f25;
+    --panel-2: #23272f;
+    --line: #333944;
+    --ink: #e6e8ec;
+    --dim: #949aa6;
+    --accent: #ff7a1a;
+    --good: #57c07a;
+    --bad: #e0524a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.6 ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1 { font-size: 26px; line-height: 1.3; margin: 0 0 12px; letter-spacing: -0.01em; }
+  .lede { color: var(--dim); margin: 0 0 32px; }
+  .pick { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .pick button {
+    text-align: left; background: var(--panel); border: 1px solid var(--line);
+    color: var(--ink); border-radius: 8px; padding: 16px 18px; font: inherit; cursor: pointer;
+  }
+  .pick button:hover { border-color: var(--dim); }
+  .pick button.on { border-color: var(--accent); background: var(--panel-2); }
+  .pick button b { display: block; font-size: 17px; margin-bottom: 4px; }
+  .pick button span { color: var(--dim); font-size: 14px; line-height: 1.5; }
+  canvas { display: block; width: 100%; border-radius: 8px; background: #0e1013; border: 1px solid var(--line); }
+  .under { display: flex; align-items: center; gap: 14px; margin-top: 14px; flex-wrap: wrap; }
+  .hold {
+    background: var(--accent); color: #14161a; border: 0; border-radius: 8px;
+    padding: 16px 28px; font: 600 17px inherit; cursor: pointer; user-select: none; touch-action: none;
+  }
+  .hold:active, .hold.down { background: #ffa15c; }
+  .again { background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 14px 20px; font: inherit; cursor: pointer; }
+  .result { font-size: 17px; font-weight: 600; }
+  .result.good { color: var(--good); }
+  .result.bad { color: var(--bad); }
+  .result.dim { color: var(--dim); font-weight: 400; }
+  .ask { margin-top: 44px; padding-top: 28px; border-top: 1px solid var(--line); }
+  .ask h2 { font-size: 20px; margin: 0 0 10px; }
+  .ask p { color: var(--dim); margin: 0 0 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>When the player presses a button in the air, does the Bike turn because the Rider moved, or does the Bike turn on its own?</h1>
+  <p class="lede">
+    Two versions of the same jump. Both let you save it. They just do it differently.
+    Try each one a few times and see which feels more like the game you want to make.
+  </p>
+
+  <div class="pick">
+    <button id="pick-a">
+      <b>Version A</b>
+      <span>The Rider's body turns the Bike. Swing them back and the Bike tips with them.</span>
+    </button>
+    <button id="pick-b">
+      <b>Version B</b>
+      <span>The Bike turns on its own. The Rider shifts a little, but that is not what is doing it.</span>
+    </button>
+  </div>
+
+  <canvas id="view" width="1680" height="620"></canvas>
+
+  <div class="under">
+    <button class="hold" id="hold">Hold this to save the jump</button>
+    <button class="again" id="again">Jump again</button>
+    <div class="result dim" id="result">Pick a version above to start.</div>
+  </div>
+  <p class="lede" style="margin:14px 0 0; font-size:14px">The spacebar does the same thing as the orange button, if you would rather use it.</p>
+
+  <div class="ask">
+    <h2>The only question</h2>
+    <p>Once you have ridden both a few times: which one felt more like MoMadness?</p>
+    <p>There is no right answer in here. Both save the jump. They are different ideas about
+    what the player is doing in the air, and picking one is the decision.</p>
+  </div>
+
+</div>
+
+<script>
+/* One jump. One button. Two versions. Nothing else. */
+
+const DT = 1 / 120;
+const GRAVITY = 15;
+
+// Sized so that doing nothing lands about 22 degrees nose-high, which crashes,
+// and so that holding the button lands near flat in BOTH versions. Neither
+// version is allowed to be the obviously broken one.
+const LAUNCH_PITCH = 6;      // degrees, nose already up
+const LAUNCH_SPIN = 13;      // degrees per second, still rotating back
+const A_MAX_CORRECTION = 20; // degrees, all the Rider's body can ever give you
+const B_TURN_RATE = 18;      // degrees per second, for as long as you hold
+const CLEAN_ANGLE = 12;      // within this of flat and you land it
+
+let version = null;          // 'A' or 'B'
+let holding = false;
+
+const shot = {
+  live: false, t: 0, x: 0, y: 0, vy: 0,
+  correction: 0,   // degrees taken off the nose so far
+  lean: 0,         // 0..1, how far the Rider has swung back
+  landed: null,
+  usedButton: false
+};
+
+function jump() {
+  if (!version) return;
+  shot.live = true;
+  shot.t = 0;
+  shot.x = 3;
+  shot.y = 0;
+  shot.vy = 9;          // gives about 1.2 seconds of air
+  shot.correction = 0;
+  shot.lean = 0;
+  shot.landed = null;
+  shot.usedButton = false;
+  setResult('In the air. Hold the button.', 'dim');
+}
+
+function step() {
+  if (!shot.live) return;
+  shot.t += DT;
+  shot.x += 12 * DT;
+  shot.vy -= GRAVITY * DT;
+  shot.y += shot.vy * DT;
+  if (holding) shot.usedButton = true;
+
+  if (version === 'A') {
+    // The Rider's body IS the correction. It is worth exactly as much as how
+    // far they are leaning right now, and it goes away when they come back.
+    shot.lean += ((holding ? 1 : 0) - shot.lean) * 9 * DT;
+    shot.correction = shot.lean * A_MAX_CORRECTION;
+  } else {
+    // The Bike turns by itself for as long as you hold. What you have turned
+    // stays turned. The Rider's shift is a gesture with nothing behind it.
+    if (holding) shot.correction += B_TURN_RATE * DT;
+    shot.lean += ((holding ? 0.4 : 0) - shot.lean) * 9 * DT;
+  }
+
+  if (shot.y <= 0 && shot.t > 0.1) {
+    shot.y = 0;
+    shot.live = false;
+    land();
+  }
+}
+
+function pitchNow() {
+  return LAUNCH_PITCH + LAUNCH_SPIN * shot.t - shot.correction;
+}
+
+function land() {
+  const off = pitchNow();
+  shot.landed = Math.abs(off) < CLEAN_ANGLE;
+  if (shot.landed) {
+    setResult('Landed it.', 'good');
+  } else if (!shot.usedButton) {
+    setResult('Crashed, nose-high. You never held the button. Try again and hold it.', 'bad');
+  } else if (off > 0) {
+    setResult('Crashed, still nose-high. Hold it sooner, or hold it longer.', 'bad');
+  } else {
+    setResult('Crashed, turned too far. You went past flat.', 'bad');
+  }
+}
+
+function setResult(text, kind) {
+  const r = document.getElementById('result');
+  r.textContent = text;
+  r.className = 'result ' + kind;
+}
+
+/* ------------------------------- drawing ------------------------------- */
+
+const cv = document.getElementById('view');
+const ctx = cv.getContext('2d');
+const PPM = 46;
+const GROUND_Y = 500;
+
+function draw() {
+  const w = cv.width, h = cv.height;
+  ctx.fillStyle = '#0e1013';
+  ctx.fillRect(0, 0, w, h);
+
+  // ground
+  ctx.fillStyle = '#232a22';
+  ctx.fillRect(0, GROUND_Y, w, h - GROUND_Y);
+  ctx.strokeStyle = '#4b5b47';
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(w, GROUND_Y); ctx.stroke();
+
+  if (!version) {
+    label(w / 2, 250, 'Pick Version A or Version B above.', '#949aa6', 30);
+    return;
+  }
+
+  label(70, 60, 'VERSION ' + version, '#ff7a1a', 30, 'left');
+
+  const px = 150 + shot.x * PPM;
+  const py = GROUND_Y - shot.y * PPM;
+  drawRig(px, py, pitchNow(), shot.lean);
+
+  // A flat reference line through the Bike, so "how far off flat am I" is
+  // something you can see rather than something you have to read.
+  ctx.save();
+  ctx.strokeStyle = 'rgba(148,154,166,0.35)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([10, 10]);
+  ctx.beginPath(); ctx.moveTo(px - 130, py); ctx.lineTo(px + 130, py); ctx.stroke();
+  ctx.restore();
+
+  if (shot.live) {
+    const off = pitchNow();
+    const ok = Math.abs(off) < CLEAN_ANGLE;
+    label(w / 2, 120, ok ? 'Angle is good' : (off > 0 ? 'Nose too high' : 'Turned too far'),
+          ok ? '#57c07a' : '#e0524a', 34);
+  } else if (shot.landed !== null) {
+    label(w / 2, 120, shot.landed ? 'Landed it' : 'Crashed',
+          shot.landed ? '#57c07a' : '#e0524a', 34);
+  }
+}
+
+function label(x, y, text, colour, size, align) {
+  ctx.save();
+  ctx.font = '600 ' + size + 'px ui-sans-serif, sans-serif';
+  ctx.textAlign = align || 'center';
+  ctx.fillStyle = colour;
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
+function drawRig(px, py, pitchDeg, lean) {
+  const pitch = pitchDeg * Math.PI / 180;
+  ctx.save();
+  ctx.translate(px, py);
+  ctx.rotate(-pitch);
+
+  ctx.strokeStyle = '#c8ccd4';
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-46, -14); ctx.lineTo(38, -16); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(38, -16); ctx.lineTo(54, -44); ctx.stroke();
+  ctx.fillStyle = '#7f858f';
+  ctx.beginPath(); ctx.arc(-46, 0, 17, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(42, 0, 17, 0, 7); ctx.fill();
+
+  // Rider, pivoting at the seat. Swings back as `lean` goes to 1.
+  ctx.save();
+  ctx.translate(-10, -26);
+  ctx.rotate(lean * 0.85);
+  ctx.strokeStyle = '#ff7a1a';
+  ctx.lineWidth = 9;
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(10, -40); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(10, -40); ctx.lineTo(52, -20); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-20, 16); ctx.stroke();
+  ctx.fillStyle = '#ff7a1a';
+  ctx.beginPath(); ctx.arc(13, -54, 13, 0, 7); ctx.fill();
+  ctx.restore();
+
+  ctx.restore();
+}
+
+/* ------------------------------- controls ------------------------------- */
+
+const holdBtn = document.getElementById('hold');
+
+function setHold(on) {
+  holding = on;
+  holdBtn.classList.toggle('down', on);
+}
+
+holdBtn.addEventListener('pointerdown', e => { e.preventDefault(); setHold(true); });
+holdBtn.addEventListener('pointerup', () => setHold(false));
+holdBtn.addEventListener('pointerleave', () => setHold(false));
+holdBtn.addEventListener('pointercancel', () => setHold(false));
+
+addEventListener('keydown', e => { if (e.key === ' ') { e.preventDefault(); setHold(true); } });
+addEventListener('keyup', e => { if (e.key === ' ') { e.preventDefault(); setHold(false); } });
+addEventListener('blur', () => setHold(false));
+
+function choose(v) {
+  version = v;
+  document.getElementById('pick-a').classList.toggle('on', v === 'A');
+  document.getElementById('pick-b').classList.toggle('on', v === 'B');
+  jump();
+}
+
+document.getElementById('pick-a').addEventListener('click', () => choose('A'));
+document.getElementById('pick-b').addEventListener('click', () => choose('B'));
+document.getElementById('again').addEventListener('click', jump);
+
+let acc = 0, prev = performance.now();
+function frame(now) {
+  let dt = (now - prev) / 1000;
+  prev = now;
+  if (dt > 0.25) dt = 0.25;
+  acc += dt;
+  while (acc >= DT) { step(); acc -= DT; }
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
