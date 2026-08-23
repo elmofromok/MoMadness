@@ -403,20 +403,51 @@ function drawBike() {
 // plank. Leaning moves the hips back off the seat and tips the torso, while
 // the hands stay on the bars and the boots stay on the pegs, which is what it
 // looks like when someone actually throws their weight around on a bike.
+const UPPER_ARM = 42, FOREARM = 36;
+const THIGH = 46, SHIN = 44;
+
+// Where the middle joint of a two-bone limb ends up, given both ends. `bow`
+// picks which side it bends towards: the elbow drops below the line from the
+// shoulder to the bars, the knee comes up in front of the line from the hip to
+// the peg. Guessing an offset instead of solving this is what had the arms
+// bending backwards.
+function joint(from, to, boneA, boneB, bow) {
+  const dx = to[0] - from[0], dy = to[1] - from[1];
+  const span = Math.hypot(dx, dy) || 0.001;
+  const ux = dx / span, uy = dy / span;
+  const reach = Math.min(span, boneA + boneB - 0.5);
+  const along = (reach * reach + boneA * boneA - boneB * boneB) / (2 * reach);
+  const out = Math.sqrt(Math.max(0, boneA * boneA - along * along));
+  return [from[0] + ux * along - uy * out * bow,
+          from[1] + uy * along + ux * out * bow];
+}
+
 function drawRider(lean) {
-  const tip = -lean * 0.7;
+  const tip = -lean * 0.2;
   const c = Math.cos(tip), s = Math.sin(tip);
   const rot = v => [v[0] * c - v[1] * s, v[0] * s + v[1] * c];
 
-  const hip = [SEAT[0] - lean * 32, SEAT[1] - lean * 10];
+  // Hips slide back off the seat and drop. They cannot go far: the hands are
+  // still on the bars, so the arms run out of length. That limit is real, and
+  // most of what you see is the arms straightening out.
+  const hip = [SEAT[0] - lean * 24, SEAT[1] + lean * 10];
   const t = rot([8, -42]);
   const shoulder = [hip[0] + t[0], hip[1] + t[1]];
+
+  const stretch = Math.hypot(BAR[0] - shoulder[0], BAR[1] - shoulder[1]);
+  const limit = UPPER_ARM + FOREARM;
+  if (stretch > limit) {                     // pull the whole Rider back within reach
+    const k = (stretch - limit) / stretch;
+    for (const p of [hip, shoulder]) {
+      p[0] += (BAR[0] - shoulder[0]) * k;
+      p[1] += (BAR[1] - shoulder[1]) * k;
+    }
+  }
+
   const h = rot([6, -19]);
   const head = [shoulder[0] + h[0], shoulder[1] + h[1]];
-
-  const elbow = [(shoulder[0] + BAR[0]) / 2 + 4, (shoulder[1] + BAR[1]) / 2 - 17];
-  const knee = [hip[0] + (PEG[0] - hip[0]) * 0.5 + 27 - lean * 12,
-                hip[1] + (PEG[1] - hip[1]) * 0.5 - 5 + lean * 4];
+  const elbow = joint(shoulder, BAR, UPPER_ARM, FOREARM, 1);
+  const knee = joint(hip, PEG, THIGH, SHIN, -1);
 
   ctx.save();
   ctx.lineCap = 'round';
