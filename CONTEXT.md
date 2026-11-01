@@ -51,8 +51,8 @@ Player-driven rotation of the Rider relative to the Bike.
 _Avoid_: tilt, shift, weight transfer
 
 **Cross-over**:
-A Lean that throws the Rider across the Bike to one side. Airborne it is the
-player's only means of rotating the Bike, which it does by reaction torque.
+A Lean that throws the Rider across the Bike to one side. In the air it turns
+the Bike by reaction torque.
 _Avoid_: whip, body english, bike rotation
 
 **Air-save**:

@@ -36,9 +36,8 @@ The difference only shows up when you let go early:
 [ADR-0003](../../docs/adr/0003-rider-lean-drives-bike-rotation-in-the-air.md).
 
 Everything else the issue raises (how strong the effect is, whether the two mix,
-which key does what) only matters after that, and cannot be judged without a
-real bike in a Unity scene. The prototype has done its job and is kept only as
-the record of how the question was asked.
+which key does what) is still open, and needs a real bike in a Unity scene.
+The prototype is kept as the record of how the question was asked.
 
 ## History
 
