@@ -50,6 +50,11 @@ _Avoid_: vehicle, machine
 Player-driven rotation of the Rider relative to the Bike.
 _Avoid_: tilt, shift, weight transfer
 
+**Cross-over**:
+A Lean that throws the Rider across the Bike to one side. Airborne it is the
+player's only means of rotating the Bike, which it does by reaction torque.
+_Avoid_: whip, body english, bike rotation
+
 **Air-save**:
 Recovering a badly-launched jump by leaning in flight so the Bike lands at a
 survivable angle. The game's central skill.
@@ -64,11 +69,3 @@ _Avoid_: help, aid, auto-correct, arcade mode
 The Rider parting from the Bike after a bad landing or impact. A spectacle to
 watch rather than a failure, since there is no progress to lose.
 _Avoid_: wipeout, fail, death
-
-## Unresolved
-
-**Cross-over**:
-Contested. The source material uses it for a Rider movement in one place and a
-Bike rotation in another. Which one it names depends on a design decision that
-is still open. Do not use the term in a spec until it is settled.
-See [issue #2](https://github.com/elmofromok/MoMadness/issues/2).

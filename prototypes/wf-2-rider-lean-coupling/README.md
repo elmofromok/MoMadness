@@ -30,14 +30,15 @@ The difference only shows up when you let go early:
 - **Version B**, the Bike turns itself. What you turned stays turned. Let go
   and it holds.
 
-## Answer to record
+## The answer it gave
 
-Which one felt more like MoMadness. That goes on issue #2, and it decides
-whether the Rider is the instrument or the animation.
+**Version A.** The Rider is the instrument. Recorded in
+[ADR-0003](../../docs/adr/0003-rider-lean-drives-bike-rotation-in-the-air.md).
 
 Everything else the issue raises (how strong the effect is, whether the two mix,
-which key does what) only matters after that, and probably cannot be judged
-without a real bike in a Unity scene.
+which key does what) only matters after that, and cannot be judged without a
+real bike in a Unity scene. The prototype has done its job and is kept only as
+the record of how the question was asked.
 
 ## History
 
