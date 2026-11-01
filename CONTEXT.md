@@ -65,6 +65,21 @@ An automatic correction layered on top of the unassisted physics, always
 expressible as a value that can be reduced to nothing.
 _Avoid_: help, aid, auto-correct, arcade mode
 
+**Gyro effect**:
+Rotation of the Bike caused by changing a wheel's spin. Braking drops the nose
+and throttle lifts it. Unlike a Lean, it changes how fast the Bike spins, and
+the change stays after the input is released.
+_Avoid_: gyroscope, wheel torque, brake tap
+
+**Hard mode**:
+The game with every Assist at zero: the unassisted physics.
+_Avoid_: sim mode, realistic mode, pro mode
+
+**Easy mode**:
+The game with Assists raised so that releasing an input settles the Bike
+instead of leaving it spinning.
+_Avoid_: arcade mode, casual mode, beginner mode
+
 **Crash**:
 The Rider parting from the Bike after a bad landing or impact. A spectacle to
 watch rather than a failure, since there is no progress to lose.

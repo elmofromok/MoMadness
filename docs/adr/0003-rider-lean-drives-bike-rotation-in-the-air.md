@@ -28,8 +28,9 @@ its reach:
 
 - **Whether lean is the only thing that turns the Bike in the air.** Lean
   corrects an angle but cannot stop a spin, so on long jumps it may not be
-  enough alone. The source material lists gyro effects from gas and brake, a
-  real second channel through the rear wheel.
+  enough alone. Picked up in
+  [ADR-0004](0004-the-gyro-effect-turns-the-bike-in-the-air.md): the gyro
+  effect from gas and brake is a second channel.
 - **How strong the coupling is.** That needs the real rig in a Unity scene.
 - **Whether any direct Bike air control exists**, as an Assist or otherwise.
 - **Whether the coupled feel survives a jointed rig.** Drive lag between input
