@@ -60,7 +60,9 @@ Each is a float, so Hard mode is all of them at 0.
 ## Still open
 
 - **Strength.** Real strength is the starting point and riding decides.
-- **Whether the engine's own spinning parts add to the gyro.** Belongs to #18.
+- **Whether the engine's own spinning parts add to the gyro.** Picked up in
+  [ADR-0005](0005-the-engine-model.md): the crank counts, turning the same way
+  as the wheels, with its own strength float.
 - **Whether the two channels feel right together.** Nobody has ridden lean and
   gyro on the same Bike yet.
 
