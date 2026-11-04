@@ -82,6 +82,22 @@ and throttle lifts it. Unlike a Lean, it changes how fast the Bike spins, and
 the change stays after the input is released.
 _Avoid_: gyroscope, wheel torque, brake tap
 
+**Control preference**:
+A setting that changes who operates a control, not how the Bike behaves. Not
+an Assist, so Hard mode can be played with any Control preference on.
+_Avoid_: assist, option, setting
+
+**Auto-shifter**:
+The Control preference that changes gear for the Player, pressing the same
+shift input a manual shift would. Holds its gear while the Bike is airborne,
+and brings the auto-clutch for pulling away and stopping.
+_Avoid_: automatic transmission, auto gears
+
+**Engine asset**:
+The data that defines an engine: torque table, engine-braking curve, gear
+ratios, idle and limiter RPM, crank inertia. One per engine.
+_Avoid_: engine profile, engine config, bike stats
+
 **Hard mode**:
 The game with every Assist at zero: the unassisted physics.
 _Avoid_: sim mode, realistic mode, pro mode

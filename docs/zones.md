@@ -140,3 +140,6 @@ to build it first.
 - Whether two zones holds once the mine's real cost is known. The mine might
   show that one zone is the honest count, or that a third is affordable.
 - Every ratio and count above, until a zone has actually been ridden.
+- The 40 to 60 km/h riding speed. On the real 450 gear ratios from
+  [ADR-0005](adr/0005-the-engine-model.md) that range is almost all 1st gear,
+  so either the ratios get compressed or this figure is low. Riding decides.
