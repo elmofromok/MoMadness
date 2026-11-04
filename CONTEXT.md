@@ -26,6 +26,17 @@ _Avoid_: obstacle, prop, jump
 An authored moment placed so it can be noticed. It need not be rideable.
 _Avoid_: set dressing, scenery, secret
 
+**Design speed**:
+The range of speeds a Playground feature is built to be hit at. Below it the
+Bike comes up short, above it the Bike overshoots the landing.
+_Avoid_: target speed, entry speed, approach speed
+
+**Finished zone**:
+A Zone with enough Playground features and Vignettes, spread evenly enough,
+that a rider rarely goes half a minute without something to steer toward, and
+whose every Playground feature has been ridden.
+_Avoid_: complete zone, done zone, shippable zone
+
 **Easter egg**:
 The informal umbrella for both a Playground feature and a Vignette. Imprecise
 by nature, since the two cost and behave differently. Use the precise term
